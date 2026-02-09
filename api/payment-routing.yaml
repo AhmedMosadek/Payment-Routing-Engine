@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Payment Routing API
+  version: 1.0.0
+  description: API contracts for payment gateway recommendation, split routing, and biller transaction history.
+servers:
+  - url: /
+paths:
+  /api/v1/payments/recommend:
+    post:
+      operationId: recommendGateway
+      summary: Recommend best payment gateway
+      tags:
+        - PaymentRouting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendRequest'
+      responses:
+        '200':
+          description: Recommendation generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendResponse'
+  /api/v1/payments/split:
+    post:
+      operationId: splitPayment
+      summary: Split payment amount across gateways
+      tags:
+        - PaymentRouting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SplitRequest'
+      responses:
+        '200':
+          description: Payment was split successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SplitResponse'
+  /api/v1/billers/{billerId}/transactions:
+    get:
+      operationId: getBillerTransactions
+      summary: Get transaction history for a biller
+      tags:
+        - PaymentRouting
+      parameters:
+        - name: billerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionHistoryResponse'
+components:
+  schemas:
+    Urgency:
+      type: string
+      enum:
+        - INSTANT
+        - CAN_WAIT
+
+    RecommendRequest:
+      type: object
+      required:
+        - billerId
+        - amount
+        - urgency
+      properties:
+        billerId:
+          type: string
+          example: BILLER-001
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 1250.5
+        urgency:
+          $ref: '#/components/schemas/Urgency'
+
+    GatewayAlternative:
+      type: object
+      required:
+        - gateway
+        - commission
+        - quotaAvailable
+      properties:
+        gateway:
+          type: string
+          example: GATEWAY_B
+        commission:
+          type: number
+          format: double
+          minimum: 0
+          example: 11.35
+        quotaAvailable:
+          type: number
+          format: double
+          minimum: 0
+          example: 48000
+
+    RecommendResponse:
+      type: object
+      required:
+        - billerId
+        - amount
+        - recommendedGateway
+        - alternatives
+        - totalCommission
+        - quotaAvailable
+      properties:
+        billerId:
+          type: string
+          example: BILLER-001
+        amount:
+          type: number
+          format: double
+          example: 1250.5
+        recommendedGateway:
+          type: string
+          example: GATEWAY_A
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayAlternative'
+        totalCommission:
+          type: number
+          format: double
+          minimum: 0
+          example: 10.8
+        quotaAvailable:
+          type: number
+          format: double
+          minimum: 0
+          example: 92000
+
+    SplitRequest:
+      type: object
+      required:
+        - billerId
+        - amount
+        - urgency
+      properties:
+        billerId:
+          type: string
+          example: BILLER-002
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 5000
+        urgency:
+          $ref: '#/components/schemas/Urgency'
+
+    PaymentSplit:
+      type: object
+      required:
+        - gateway
+        - amount
+        - commission
+      properties:
+        gateway:
+          type: string
+          example: GATEWAY_A
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 3000
+        commission:
+          type: number
+          format: double
+          minimum: 0
+          example: 24.0
+
+    SplitResponse:
+      type: object
+      required:
+        - billerId
+        - amount
+        - splits
+        - splitCount
+        - totalCommission
+      properties:
+        billerId:
+          type: string
+          example: BILLER-002
+        amount:
+          type: number
+          format: double
+          example: 5000
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentSplit'
+        splitCount:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 2
+        totalCommission:
+          type: number
+          format: double
+          minimum: 0
+          example: 39.5
+        quotaAvailable:
+          type: number
+          format: double
+          minimum: 0
+          example: 125000
+
+    TransactionRecord:
+      type: object
+      required:
+        - transactionId
+        - gateway
+        - amount
+        - commission
+        - quotaAvailable
+        - status
+        - createdAt
+      properties:
+        transactionId:
+          type: string
+          example: TXN-20260209-0001
+        gateway:
+          type: string
+          example: GATEWAY_A
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 875
+        commission:
+          type: number
+          format: double
+          minimum: 0
+          example: 7.6
+        quotaAvailable:
+          type: number
+          format: double
+          minimum: 0
+          example: 80000
+        status:
+          type: string
+          example: SUCCESS
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-02-09T10:15:30Z'
+
+    TransactionHistoryResponse:
+      type: object
+      required:
+        - billerId
+        - transactions
+        - totalCommission
+      properties:
+        billerId:
+          type: string
+          example: BILLER-002
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionRecord'
+        totalCommission:
+          type: number
+          format: double
+          minimum: 0
+          example: 51.4
